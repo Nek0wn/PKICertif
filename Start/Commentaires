@@ -1,0 +1,68 @@
+from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.Hash import SHA256
+import paho.mqtt.client as mqtt
+
+# Configuration MQTT
+mqtt_broker_ip = "194.57.103.203"
+mqtt_broker_port = 1883
+base_topic = "vehicle"
+
+# Génération de la paire de clés RSA
+def generate_key_pair():
+    key = RSA.generate(2048)
+    return key
+
+# Génération du certificat auto-signé
+def generate_self_signed_certificate(private_key):
+    # Implémente la logique de génération de certificat auto-signé X.509
+    # Utilise SHA256 et RSA2048
+    # Retourne le certificat généré
+    pass
+
+# Vérification de la validité d'un certificat
+def verify_certificate(cert, ca_cert):
+    # Implémente la vérification de la validité du certificat
+    # Utilise la clé publique de l'autorité de certification (ca_cert)
+    # Retourne True si le certificat est valide, False sinon
+    pass
+
+# Demande de certificat à la CA
+def request_certificate():
+    # Publie une demande de certificat sur le topic MQTT
+    pass
+
+# Vérification de la révocation d'un certificat
+def check_revoked(cert):
+    # Implémente la logique de vérification de révocation du certificat
+    # Retourne True si le certificat est révoqué, False sinon
+    pass
+
+# Insertion d'un certificat révoqué
+def revoke_certificate(cert):
+    # Implémente la logique d'insertion d'un certificat révoqué
+    pass
+
+# Fonction pour la simulation du scénario 1
+def simulate_scenario_1():
+    # Client vérifie le certificat vendeur et effectue un achat
+    pass
+
+# Fonction pour la simulation du scénario 2
+def simulate_scenario_2():
+    # Client vérifie le certificat vendeur, demande si révoqué et effectue un achat
+    pass
+
+# Fonction pour la simulation du scénario 3
+def simulate_scenario_3():
+    # Client vérifie le certificat vendeur, demande si révoqué,
+    # constate que le vendeur est révoqué et ne fait pas l'achat
+    pass
+
+# Main function
+def main():
+    # Ici tu peux appeler les fonctions pour simuler les scénarios
+    pass
+
+if __name__ == "__main__":
+    main()

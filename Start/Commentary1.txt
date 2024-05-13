@@ -1,0 +1,23 @@
+Scénario 1 :
+Dans ce scénario, le client effectue un achat juste après avoir vérifié le certificat du vendeur.
+
+Le client se connecte au vendeur.
+Le vendeur envoie son certificat au client.
+Le client vérifie la validité du certificat du vendeur en utilisant la clé publique de l'autorité de certification.
+Si le certificat est valide, le client effectue l'achat.
+Scénario 2 :
+Dans ce scénario, le client vérifie le certificat du vendeur et demande s'il est révoqué avant d'effectuer un achat.
+
+Le client se connecte au vendeur.
+Le vendeur envoie son certificat au client.
+Le client vérifie la validité du certificat du vendeur en utilisant la clé publique de l'autorité de certification.
+Le client vérifie si le certificat du vendeur est révoqué en envoyant une demande à la CA.
+Si le certificat n'est pas révoqué, le client effectue l'achat.
+Scénario 3 :
+Dans ce scénario, le client vérifie le certificat du vendeur, demande s'il est révoqué et réalise ensuite que le vendeur est effectivement révoqué, annulant ainsi l'achat.
+
+Le client se connecte au vendeur.
+Le vendeur envoie son certificat au client.
+Le client vérifie la validité du certificat du vendeur en utilisant la clé publique de l'autorité de certification.
+Le client vérifie si le certificat du vendeur est révoqué en envoyant une demande à la CA.
+Si le certificat est révoqué, le client annule l'achat.
