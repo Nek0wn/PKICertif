@@ -1,5 +1,6 @@
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA256
+from Crypto.Signature import PKCS1_v1_5
 
 # Génération de la paire de clés RSA pour la CA
 def generate_ca_key_pair():
@@ -8,17 +9,33 @@ def generate_ca_key_pair():
 
 # Génération du certificat auto-signé pour un vendeur
 def generate_certificate(private_key):
-    # Implémente la logique de génération de certificat auto-signé X.509
-    # Utilise SHA256 et RSA2048
-    # Retourne le certificat généré
-    pass
+    # Création du certificat
+    cert = {
+        "public_key": private_key.publickey().export_key().decode(),
+        "signature": "",
+        # D'autres informations de certificat peuvent être ajoutées ici
+    }
+
+    # Signature du certificat
+    signer = PKCS1_v1_5.new(private_key)
+    digest = SHA256.new(str(cert).encode())
+    cert["signature"] = signer.sign(digest).hex()
+
+    return cert
 
 # Vérification de la validité d'un certificat
-def verify_certificate(cert, ca_cert):
-    # Implémente la vérification de la validité du certificat
-    # Utilise la clé publique de l'autorité de certification (ca_cert)
-    # Retourne True si le certificat est valide, False sinon
-    pass
+def verify_certificate(cert, ca_key):
+    # Récupération de la clé publique de la CA
+    ca_pub_key = RSA.import_key(ca_key)
+
+    # Vérification de la signature
+    signature = bytes.fromhex(cert["signature"])
+    digest = SHA256.new(str(cert).encode())
+    verifier = PKCS1_v1_5.new(ca_pub_key)
+    if verifier.verify(digest, signature):
+        return True
+    else:
+        return False
 
 # Insertion d'un certificat révoqué
 def revoke_certificate(cert):

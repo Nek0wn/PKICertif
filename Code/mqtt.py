@@ -1,16 +1,20 @@
 import paho.mqtt.client as mqtt
 
+# Configuration MQTT
+mqtt_broker_ip = "194.57.103.203"
+mqtt_broker_port = 1883
+base_topic = "vehicle"
+
 # Initialisation du client MQTT
 def initialize_mqtt_client():
-    # Implémente la logique d'initialisation du client MQTT
-    pass
+    client = mqtt.Client()
+    client.connect(mqtt_broker_ip, mqtt_broker_port)
+    return client
 
 # Publication d'un message MQTT
-def publish_message(topic, message):
-    # Implémente la logique de publication d'un message MQTT
-    pass
+def publish_message(client, topic, message):
+    client.publish(topic, message)
 
 # Souscription à un topic MQTT
-def subscribe_topic(topic):
-    # Implémente la logique de souscription à un topic MQTT
-    pass
+def subscribe_topic(client, topic):
+    client.subscribe(topic)

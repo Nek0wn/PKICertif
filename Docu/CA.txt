@@ -1,0 +1,6 @@
+Dans ce code :
+
+generate_ca_key_pair() génère une nouvelle paire de clés RSA pour la CA.
+generate_certificate(private_key) génère un certificat auto-signé pour un vendeur en utilisant la clé privée de la CA.
+verify_certificate(cert, ca_key) vérifie la validité d'un certificat en utilisant la clé publique de la CA.
+revoke_certificate(cert) est une fonction que tu devras implémenter pour gérer la révocation des certificats, une fois que tu auras défini la logique de révocation.
