@@ -23,9 +23,14 @@ def simulate_scenario_3(client):
     client.publish("vehicle/ca/check_revocation", "vendor_3")
     time.sleep(5)  # Attendre pour laisser le temps de vérification de révocation
 
+    # Révocation automatique du certificat de vendor_3 par la CA
+    client.publish("vehicle/ca/revoke_certificate", "vendor_3")
+    print("Certificat de vendor_3 ajouté à la liste des certificats révoqués.")
+
     # Supposer que le certificat est révoqué
     # Pas d'achat car le certificat est révoqué
     print("Le certificat de vendor_3 est révoqué, achat annulé.")
+
 
 def main():
     client = mqtt.Client()
