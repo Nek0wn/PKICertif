@@ -19,14 +19,14 @@ class Vendor:
 
         # Recevoir la demande de verification de la part du client (pour lui envoyer son certif)    
         elif message.topic == "vehicle/client/verify_cert":
-            print("-----Client veut vérif le certif")
+            print("-----Client demande le certif du Vendeur. . .")
             self.send_certificate(client)
 
 
     # Envoyer le certificat au client
     def send_certificate(self, client):
         mqtt.publish_message(client, "vehicle/client/cert_from_vendor", json.dumps(self.certificate))
-        print("-----Envoi du certif au Client . . .")
+        print("-----Envoi du certif Vendeur au Client . . .")
 
 
 # Initialisation du vendeur
