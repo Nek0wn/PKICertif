@@ -39,7 +39,7 @@ def main():
 
     client.loop_start()
     try:
-        vendor.request_certificate(client)
+        #vendor.request_certificate(client)
         while True:
             pass
     except KeyboardInterrupt:
