@@ -64,7 +64,6 @@ class CertificationAuthority:
             vendor_id = message.payload.decode()
             vendor_cert = self.generate_vendor_certificate(vendor_id)
             mqtt.publish_message(client, "vehicle/ca/response_cert", json.dumps(vendor_cert))
-            print("-----Génération du certif Vendeur . . .")
         elif message.topic == "vehicle/ca/check_revocation":
             print("-----Demande de verification de certif . . .")
             vendor_id = message.payload.decode()
