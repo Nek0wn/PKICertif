@@ -1,19 +1,24 @@
 import ca
 import mqtt
 
-# Fonction pour envoyer le certificat du vendeur
-def send_certificate(ca_cert):
-    # Génère la paire de clés RSA pour le vendeur
-    vendeur_key = ca.generate_ca_key_pair()
-
-    # Génère le certificat du vendeur
-    vendeur_cert = ca.generate_certificate(vendeur_key)
-
-    # Initialise le client MQTT
+# Demander un certificat à la CA
+def request_certificate():
     client = mqtt.initialize_mqtt_client()
+    mqtt.publish_message(client, "vehicle/ca/request_cert", "Requesting Cert")
 
-    # Envoie le certificat du vendeur sur le topic MQTT approprié
-    mqtt.publish_message(client, mqtt.base_topic + "/vendeur/certificat", vendeur_cert)
+# Recevoir le certificat de la CA
+def on_message(client, userdata, message):
+    if message.topic == "vehicle/ca/response_cert":
+        print("Certificat reçu:", message.payload.decode())
+        # Traiter et stocker le certificat du vendeur ici
 
-    # Se désabonne du topic MQTT après avoir envoyé le certificat
-    client.unsubscribe(mqtt.base_topic + "/vendeur/certificat")
+# Initialisation du vendeur
+def main():
+    client = mqtt.initialize_mqtt_client()
+    client.subscribe("vehicle/ca/response_cert")
+    client.on_message = on_message
+    request_certificate()
+    client.loop_forever()
+
+if __name__ == "__main__":
+    main()

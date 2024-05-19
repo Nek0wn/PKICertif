@@ -1,43 +1,46 @@
 from Crypto.PublicKey import RSA
+from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
-from Crypto.Signature import PKCS1_v1_5
+from OpenSSL import crypto
+import mqtt
 
-# Génération de la paire de clés RSA pour la CA
+# Génération de la paire de clés pour la CA
 def generate_ca_key_pair():
     key = RSA.generate(2048)
-    return key
+    private_key = key.export_key()
+    public_key = key.publickey().export_key()
+    return private_key, public_key
 
-# Génération du certificat auto-signé pour un vendeur
-def generate_certificate(private_key):
-    # Création du certificat
-    cert = {
-        "public_key": private_key.publickey().export_key().decode(),
-        "signature": "",
-        # D'autres informations de certificat peuvent être ajoutées ici
-    }
+# Génération d'un certificat auto-signé pour la CA
+def generate_ca_certificate(private_key):
+    cert = crypto.X509()
+    cert.get_subject().CN = "CA"
+    cert.set_serial_number(1000)
+    cert.gmtime_adj_notBefore(0)
+    cert.gmtime_adj_notAfter(10*365*24*60*60)
+    cert.set_issuer(cert.get_subject())
+    cert.set_pubkey(crypto.load_publickey(crypto.FILETYPE_PEM, private_key))
+    cert.sign(crypto.load_privatekey(crypto.FILETYPE_PEM, private_key), 'sha256')
+    return crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
 
-    # Signature du certificat
-    signer = PKCS1_v1_5.new(private_key)
-    digest = SHA256.new(str(cert).encode())
-    cert["signature"] = signer.sign(digest).hex()
+# Gestion des requêtes MQTT pour la CA
+def on_message(client, userdata, message):
+    if message.topic == "vehicle/ca/request_cert":
+        # Génération d'un certificat pour le vendeur
+        private_key, public_key = generate_ca_key_pair()
+        vendor_cert = generate_ca_certificate(private_key)
+        mqtt.publish_message(client, "vehicle/ca/response_cert", vendor_cert)
+    elif message.topic == "vehicle/ca/check_revocation":
+        # Répondre à une requête de vérification de révocation
+        mqtt.publish_message(client, "vehicle/ca/revocation_status", "Not Revoked")
 
-    return cert
+# Initialisation de la CA
+def main():
+    client = mqtt.initialize_mqtt_client()
+    client.subscribe("vehicle/ca/request_cert")
+    client.subscribe("vehicle/ca/check_revocation")
+    client.on_message = on_message
+    client.loop_forever()
 
-# Vérification de la validité d'un certificat
-def verify_certificate(cert, ca_key):
-    # Récupération de la clé publique de la CA
-    ca_pub_key = RSA.import_key(ca_key)
-
-    # Vérification de la signature
-    signature = bytes.fromhex(cert["signature"])
-    digest = SHA256.new(str(cert).encode())
-    verifier = PKCS1_v1_5.new(ca_pub_key)
-    if verifier.verify(digest, signature):
-        return True
-    else:
-        return False
-
-# Insertion d'un certificat révoqué
-def revoke_certificate(cert):
-    # Implémente la logique d'insertion d'un certificat révoqué
-    pass
+if __name__ == "__main__":
+    main()
