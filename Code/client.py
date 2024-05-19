@@ -36,7 +36,14 @@ def main():
     client.on_message = client_instance.on_message
 
     client.loop_start()
-    client.loop_forever()
+    try:
+        while True:
+            pass
+    except KeyboardInterrupt:
+        print("Arrêt du script...")
+    finally:
+        client.loop_stop()
+        client.disconnect()
 
 if __name__ == "__main__":
     main()

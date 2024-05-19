@@ -30,8 +30,15 @@ def main():
     client.on_message = vendor.on_message
 
     client.loop_start()
-    vendor.request_certificate(client)
-    client.loop_forever()
+    try:
+        vendor.request_certificate(client)
+        while True:
+            pass
+    except KeyboardInterrupt:
+        print("Arrêt du script...")
+    finally:
+        client.loop_stop()
+        client.disconnect()
 
 if __name__ == "__main__":
     main()

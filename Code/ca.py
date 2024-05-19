@@ -80,7 +80,13 @@ def main():
     client.subscribe("vehicle/ca/check_revocation")
     client.subscribe("vehicle/ca/revoke_cert")
     client.on_message = ca.on_message
-    client.loop_forever()
+
+    try:
+        client.loop_forever()
+    except KeyboardInterrupt:
+        print("Arrêt du script...")
+    finally:
+        client.disconnect()
 
 if __name__ == "__main__":
     main()
