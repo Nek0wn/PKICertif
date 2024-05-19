@@ -10,6 +10,7 @@ import mqtt
 class CertificationAuthority:
     def __init__(self):
         self.private_key, self.public_key = self.generate_ca_key_pair()
+        print("-----Paire de clé générée . . .")
         self.certificates = {}  # Store issued certificates
         self.revoked_certificates = set()  # Store revoked certificates
 
@@ -63,11 +64,15 @@ class CertificationAuthority:
             vendor_id = message.payload.decode()
             vendor_cert = self.generate_vendor_certificate(vendor_id)
             mqtt.publish_message(client, "vehicle/ca/response_cert", json.dumps(vendor_cert))
+            print("-----Génération du certif Vendeur . . .")
         elif message.topic == "vehicle/ca/check_revocation":
+            print("-----Demande de verification de certif . . .")
             vendor_id = message.payload.decode()
             revocation_status = "Revoked" if self.is_revoked(vendor_id) else "Not Revoked"
             mqtt.publish_message(client, "vehicle/ca/revocation_status", revocation_status)
+            print("-----Envoi de l'issue de la vérif . . .")
         elif message.topic == "vehicle/ca/revoke_cert":
+            print("-----Ajout d'un certificat a la liste révoquée . . .")
             vendor_id = message.payload.decode()
             self.revoke_certificate(vendor_id)
             mqtt.publish_message(client, "vehicle/ca/revoke_response", f"Certificate for {vendor_id} revoked")

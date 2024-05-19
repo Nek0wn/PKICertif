@@ -8,18 +8,26 @@ class Vendor:
     # Demander un certificat à la CA
     def request_certificate(self, client):
         mqtt.publish_message(client, "vehicle/ca/request_cert", "vendor_1")
+        print("-----Demande de certificat . . .")
+
 
     # Recevoir le certificat de la CA
     def on_message(self, client, userdata, message):
         if message.topic == "vehicle/ca/response_cert":
             self.certificate = json.loads(message.payload.decode())
-            print("Certificat reçu:", self.certificate)
+            print("-----Certificat reçu:", self.certificate)
+
+        # Recevoir la demande de verification de la part du client (pour lui envoyer son certif)    
         elif message.topic == "vehicle/client/verify_cert":
+            print("-----Client veut vérif le certif")
             self.send_certificate(client)
+
 
     # Envoyer le certificat au client
     def send_certificate(self, client):
         mqtt.publish_message(client, "vehicle/client/cert_from_vendor", json.dumps(self.certificate))
+        print("-----Envoi du certif au Client . . .")
+
 
 # Initialisation du vendeur
 def main():

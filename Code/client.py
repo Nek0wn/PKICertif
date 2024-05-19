@@ -3,18 +3,19 @@ import mqtt
 
 class Client:
     def __init__(self):
-        self.ca_certificate = None  # Assume preloaded with CA certificate
+        self.ca_certificate = None  # Part du principe que le client lui même est certifié
 
     # Vérifier le certificat du vendeur
     def verify_certificate(self, cert):
         # Logique de vérification du certificat du vendeur
         print("Vérification du certificat:", cert)
-        return True  # Suppose la vérification est réussie
+        return True  # Suppose que la vérification est réussie
 
     # Demander à la CA si le certificat du vendeur est révoqué
     def check_revocation(self, client, vendor_id):
         mqtt.publish_message(client, "vehicle/ca/check_revocation", vendor_id)
-
+        print("-----Demande à la CA si le Certif vendeur est révoqué . . .")
+        
     # Recevoir les réponses de la CA
     def on_message(self, client, userdata, message):
         if message.topic == "vehicle/client/cert_from_vendor":
