@@ -16,6 +16,7 @@ class Vendor:
         key = RSA.generate(2048)
         private_key = key.export_key()
         public_key = key.publickey().export_key()
+        print(public_key)
         return private_key, public_key
 
     def encrypt_with_public_key(self, public_key, data):

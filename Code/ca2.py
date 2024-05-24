@@ -19,6 +19,7 @@ class CertificationAuthority:
         key = RSA.generate(2048)
         private_key = key.export_key()
         public_key = key.publickey().export_key()
+        print(public_key)
         return private_key, public_key
 
     def generate_ca_certificate(self):
