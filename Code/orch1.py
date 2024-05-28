@@ -2,6 +2,7 @@ import time
 import paho.mqtt.client as mqtt
 import json
 
+
 mqtt_broker_ip = "194.57.103.203"
 mqtt_broker_port = 1883
 
