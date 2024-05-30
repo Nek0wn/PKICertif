@@ -1,5 +1,0 @@
-#pip install -r install.txt
-
-paho-mqtt
-pycryptodome
-cryptography

@@ -1,102 +1,106 @@
-# ca.py
-import os
+from Crypto.PublicKey import RSA
+from Crypto.Signature import pkcs1_15
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import RSA
+from Crypto import Random
+import base64
 import json
-import paho.mqtt.client as mqtt
-from cryptography import x509
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
-from cryptography.x509.oid import NameOID
+import mqtt
 
-# Génère la paire de clés de la CA et crée un certificat auto-signé
-def generate_ca_keys():
-    ca_private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    ca_public_key = ca_private_key.public_key()
-    
-    subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, u"FR"),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Some-State"),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, u"City"),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"Organization"),
-        x509.NameAttribute(NameOID.COMMON_NAME, u"CA"),
-    ])
-    
-    ca_certificate = (
-        x509.CertificateBuilder()
-        .subject_name(subject)
-        .issuer_name(issuer)
-        .public_key(ca_public_key)
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.utcnow())
-        .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
-        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
-        .sign(ca_private_key, hashes.SHA256())
-    )
-    
-    return ca_private_key, ca_public_key, ca_certificate
+class CertificationAuthority:
+    def __init__(self):
+        self.private_key, self.public_key = self.generate_ca_key_pair()
+        print("-----Paire de clé générée . . .")
+        self.certificates = {}  # Stocke les certificats générés
+        self.revoked_certificates = set()  # Stocke les certificats révoqués
 
-# Fonction de rappel pour la réception de messages MQTT
-def on_message(client, userdata, message):
-    if message.topic == "vehicle/ca/request_cert":
-        data = json.loads(message.payload.decode())
-        handle_certificate_request(data, client)
+    # Génération de la paire de clés pour la CA
+    def generate_ca_key_pair(self):
+        key = RSA.generate(2048)
+        private_key = key.export_key()
+        public_key = key.publickey().export_key()
+        return private_key, public_key
 
-# Gère les demandes de certificat
-def handle_certificate_request(data, client):
-    ca_private_key = userdata["ca_private_key"]
-    ca_public_key = userdata["ca_public_key"]
-    
-    vendor_public_key = serialization.load_pem_public_key(data["public_key"].encode())
-    
-    subject = x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, u"FR"),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Some-State"),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, u"City"),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"Vendor"),
-        x509.NameAttribute(NameOID.COMMON_NAME, u"vendor.com"),
-    ])
-    
-    certificate = (
-        x509.CertificateBuilder()
-        .subject_name(subject)
-        .issuer_name(ca_certificate.subject)
-        .public_key(vendor_public_key)
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.utcnow())
-        .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
-        .sign(ca_private_key, hashes.SHA256())
-    )
-    
-    cert_pem = certificate.public_bytes(serialization.Encoding.PEM).decode()
-    
-    response = {
-        "vendor_id": data["vendor_id"],
-        "certificate": cert_pem
-    }
-    
-    client.publish("vehicle/ca/cert_response", json.dumps(response))
+    # Génération d'un certificat auto-signé pour la CA
+    def generate_ca_certificate(self):
+        cert = {
+            "subject": "CA",
+            "public_key": self.public_key.decode()
+        }
+        return base64.b64encode(json.dumps(cert).encode()).decode()
 
-# Initialise le client MQTT
-def initialize_mqtt_client(ca_private_key, ca_public_key, ca_certificate):
-    client = mqtt.Client(userdata={
-        "ca_private_key": ca_private_key,
-        "ca_public_key": ca_public_key,
-        "ca_certificate": ca_certificate
-    })
-    client.on_message = on_message
-    client.connect("194.57.103.203", 1883, 60)
+    # Génération d'un certificat pour un Vendeur
+    def generate_vendor_certificate(self, vendor_id):
+        vendor_key = RSA.generate(2048)
+        vendor_public_key = vendor_key.publickey().export_key()
+        cert = {
+            "subject": vendor_id,
+            "public_key": vendor_public_key.decode()
+        }
+        signed_cert = self.sign_certificate(cert)
+        self.certificates[vendor_id] = signed_cert
+        return signed_cert
+
+    # Signer un certificat
+    def sign_certificate(self, cert):
+        cert_str = json.dumps(cert)
+        cert_hash = SHA256.new(cert_str.encode())
+        signer = pkcs1_15.new(RSA.import_key(self.private_key))
+        signature = signer.sign(cert_hash)
+        cert['signature'] = base64.b64encode(signature).decode()
+        return cert
+
+    # Vérifier si un certificat est révoqué
+    def is_revoked(self, vendor_id):
+        return vendor_id in self.revoked_certificates
+
+    # Révoquer un certificat
+    def revoke_certificate(self, vendor_id):
+        self.revoked_certificates.add(vendor_id)
+
+    # Gestion des requêtes MQTT pour la CA
+    def on_message(self, client, userdata, message):
+
+        # Si on reçoit une demande de certificat
+        if message.topic == "vehicle/ca/request_cert":
+            vendor_id = message.payload.decode()
+            vendor_cert = self.generate_vendor_certificate(vendor_id)
+
+            # Alors j'envoie le certificat au vendeur qui l'as demandé
+            mqtt.publish_message(client, "vehicle/ca/response_cert", json.dumps(vendor_cert))
+
+        # Si on reçoit une demande de vérification de révocation
+        elif message.topic == "vehicle/ca/check_revocation":
+            print("-----Demande de verification de certif . . .")
+            vendor_id = message.payload.decode()
+
+            # Alors, si le certificat fait partie de la liste des "is_revoked", j'envoie "Revoked" au Client, sinon je lui envoie "Not Revoked"
+            revocation_status = "Revoked" if self.is_revoked(vendor_id) else "Not Revoked"
+            mqtt.publish_message(client, "vehicle/ca/revocation_status", revocation_status)
+            print("-----Envoi de l'issue de la vérif . . .")
+
+        # Fonction du scénario 3 visant a automatiquement révoquer un certificat sur demande    
+        elif message.topic == "vehicle/ca/revoke_cert":
+            print("-----Ajout d'un certificat a la liste révoquée . . .")
+            vendor_id = message.payload.decode()
+            self.revoke_certificate(vendor_id)
+            mqtt.publish_message(client, "vehicle/ca/revoke_response", f"Certificate for {vendor_id} revoked")
+
+# Initialisation de la CA
+def main():
+    ca = CertificationAuthority()
+    client = mqtt.initialize_mqtt_client()
     client.subscribe("vehicle/ca/request_cert")
     client.subscribe("vehicle/ca/check_revocation")
-    client.loop_start()
-    return client
+    client.subscribe("vehicle/ca/revoke_cert")
+    client.on_message = ca.on_message
 
-# Main
-ca_private_key, ca_public_key, ca_certificate = generate_ca_keys()
+    try:
+        client.loop_forever()
+    except KeyboardInterrupt:
+        print("Arrêt du script...")
+    finally:
+        client.disconnect()
 
-client = initialize_mqtt_client(ca_private_key, ca_public_key, ca_certificate)
-
-# Publie la clé publique de la CA sur MQTT
-client.publish("vehicle/ca/public_key", ca_public_key.public_bytes(serialization.Encoding.PEM).decode())
-
-while True:
-    pass
+if __name__ == "__main__":
+    main()
